@@ -631,11 +631,13 @@ function startGyroListening() {
 
 function onGyro(e) {
   if (!gameStarted || gameOver) return;
-  // gamma = side-wise tilt (-90 left, 0 upright, +90 right)
-  // We take absolute value so tilting either side works
-  let gamma = e.gamma || 0; // -90 to 90
-  let tilt = Math.abs(gamma); // 0 = upright, 90 = fully sideways
-  tiltAngle = Math.max(0, tilt);
+  // gamma = pure side tilt (left/right), -90 to +90
+  // beta = pitch (front/back) — ignored completely
+  const gamma = e.gamma || 0;
+  const DEAD_ZONE = 8;
+  const raw = Math.abs(gamma);
+  const tilt = raw < DEAD_ZONE ? 0 : raw - DEAD_ZONE;
+  tiltAngle = Math.min(90, tilt);
   document.getElementById('tilt-readout').textContent = `Tilt: ${Math.round(tiltAngle)}°`;
 }
 

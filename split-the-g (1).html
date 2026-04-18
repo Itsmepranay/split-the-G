@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Split the G</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --stout: #1a0f00;
+    --stout-mid: #2d1a00;
+    --stout-light: #3d2400;
+    --cream: #f5e6c0;
+    --cream-light: #fdf3dc;
+    --gold: #c8a84b;
+    --gold-light: #e8c96a;
+    --bg: #0d0804;
+    --text: #f0e6d3;
+    --text-muted: #8a7060;
+    --green: #1a7a3c;
+    --green-light: #22a050;
+    --harp-gold: #d4a843;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #app {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* ---- SCREENS ---- */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ---- TUTORIAL ---- */
+  #tutorial-screen {
+    background: var(--bg);
+    gap: 20px;
+    text-align: center;
+  }
+  .brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 38px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.4;
+  }
+  .tut-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    text-align: left;
+    max-width: 300px;
+  }
+  .tut-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .tut-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .tut-text strong { color: var(--gold-light); font-weight: 600; }
+
+  .btn-primary {
+    background: var(--gold);
+    color: var(--stout);
+    border: none;
+    padding: 14px 40px;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    text-transform: uppercase;
+  }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:hover { background: var(--gold-light); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 8px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ---- GAME SCREEN ---- */
+  #game-screen {
+    background: var(--bg);
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+  }
+
+  .game-header {
+    width: 100%;
+    padding: 20px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .game-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .tilt-indicator {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  .glass-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #glass-svg {
+    width: min(220px, 55vw);
+    height: auto;
+    filter: drop-shadow(0 20px 60px rgba(0,0,0,0.8));
+    transition: transform 0.05s linear;
+    transform-origin: center bottom;
+  }
+
+  .instruction {
+    padding: 16px 24px 28px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    line-height: 1.6;
+  }
+  .instruction span { color: var(--gold); font-weight: 500; }
+
+  /* ---- RESULT SCREEN ---- */
+  #result-screen {
+    background: var(--bg);
+    gap: 24px;
+    text-align: center;
+  }
+
+  .result-label {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .result-pct {
+    font-family: 'Playfair Display', serif;
+    font-size: 88px;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--gold);
+    transition: color 0.5s;
+  }
+  .result-pct.perfect { color: var(--green-light); }
+
+  .result-message {
+    font-size: 17px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.5;
+    max-width: 260px;
+  }
+
+  .result-glass-mini {
+    width: 90px;
+    height: auto;
+  }
+
+  /* ---- SPILL SCREEN ---- */
+  #spill-screen {
+    background: var(--bg);
+    gap: 20px;
+    text-align: center;
+  }
+  .spill-icon { font-size: 64px; }
+  .spill-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    color: #c0390a;
+    font-weight: 900;
+  }
+  .spill-sub { font-size: 15px; color: var(--text-muted); }
+
+  /* ---- AMBIENT NOISE dots ---- */
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px 200px;
+  }
+
+  /* permission prompt */
+  #perm-screen {
+    background: var(--bg);
+    gap: 20px;
+    text-align: center;
+  }
+  .perm-icon { font-size: 52px; }
+  .perm-title { font-family: 'Playfair Display', serif; font-size: 26px; color: var(--gold); font-weight: 700; }
+  .perm-sub { font-size: 14px; color: var(--text-muted); max-width: 280px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="noise-overlay"></div>
+<div id="app">
+
+  <!-- TUTORIAL -->
+  <div class="screen active" id="tutorial-screen">
+    <div class="brand">Split<br>the G</div>
+    <div class="brand-sub">A Guinness Tradition</div>
+    <div class="divider"></div>
+    <div class="tut-step">
+      <div class="tut-num">1</div>
+      <div class="tut-text">A full pint of Guinness appears, with the iconic <strong>G</strong> at the horizontal crossbar.</div>
+    </div>
+    <div class="tut-step">
+      <div class="tut-num">2</div>
+      <div class="tut-text"><strong>Tilt your phone</strong> slowly to pour the stout. The liquid drains continuously as you tilt.</div>
+    </div>
+    <div class="tut-step">
+      <div class="tut-num">3</div>
+      <div class="tut-text"><strong>Tilt back upright</strong> to stop the pour and lock in your result. Don't go past 90° — you'll spill it!</div>
+    </div>
+    <div class="tut-step">
+      <div class="tut-num">4</div>
+      <div class="tut-text">The closer the liquid sits to the <strong>G crossbar</strong>, the higher your score. 100% = perfect split.</div>
+    </div>
+    <button class="btn-primary" onclick="requestGyro()">Let's Go</button>
+    <button class="btn-secondary" onclick="showGame()">Skip tutorial</button>
+  </div>
+
+  <!-- PERMISSION -->
+  <div class="screen" id="perm-screen">
+    <div class="perm-icon">📱</div>
+    <div class="perm-title">Motion Access</div>
+    <div class="perm-sub">This game needs your device's gyroscope to detect tilting. Tap below to allow motion sensors.</div>
+    <button class="btn-primary" onclick="askPermission()">Allow Motion</button>
+    <button class="btn-secondary" onclick="showGame(true)">Use tap instead</button>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="game-screen">
+    <div class="game-header">
+      <div class="game-title">Split the G</div>
+      <div class="tilt-indicator" id="tilt-readout">Tilt: 0°</div>
+    </div>
+
+    <div class="glass-wrapper">
+      <svg id="glass-svg" viewBox="0 0 220 460" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="liquidClip">
+            <rect id="liquidClipRect" x="18" y="0" width="184" height="460"/>
+          </clipPath>
+          <clipPath id="glassClip">
+            <path id="glassClipPath" d="
+              M30,20 L18,390 Q18,420 40,430 L180,430 Q202,420 202,390 L190,20 Z
+            "/>
+          </clipPath>
+          <linearGradient id="stoutGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#0f0800"/>
+            <stop offset="40%" stop-color="#1e1000"/>
+            <stop offset="100%" stop-color="#2a1500"/>
+          </linearGradient>
+          <linearGradient id="headGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f5e8c5"/>
+            <stop offset="100%" stop-color="#e0cfa0"/>
+          </linearGradient>
+          <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="rgba(255,255,255,0.18)"/>
+            <stop offset="30%" stop-color="rgba(255,255,255,0.04)"/>
+            <stop offset="70%" stop-color="rgba(255,255,255,0.02)"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0.12)"/>
+          </linearGradient>
+          <filter id="blur2">
+            <feGaussianBlur stdDeviation="2"/>
+          </filter>
+        </defs>
+
+        <!-- Glass body (filled stout) -->
+        <g clip-path="url(#glassClip)">
+          <!-- Stout liquid -->
+          <rect id="stoutFill" x="0" y="0" width="220" height="460" fill="url(#stoutGrad)"/>
+          <!-- Head (cream) - sits on top of stout -->
+          <rect id="headFill" x="0" y="0" width="220" height="44" fill="url(#headGrad)"/>
+          <!-- Bubbles rising -->
+          <g id="bubbles" opacity="0.4">
+            <circle cx="80" cy="400" r="2" fill="#3a2200"><animate attributeName="cy" values="400;50" dur="3.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="3.2s" repeatCount="indefinite"/></circle>
+            <circle cx="110" cy="370" r="1.5" fill="#3a2200"><animate attributeName="cy" values="370;50" dur="2.8s" begin="0.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.8s" begin="0.5s" repeatCount="indefinite"/></circle>
+            <circle cx="140" cy="420" r="1" fill="#3a2200"><animate attributeName="cy" values="420;50" dur="3.6s" begin="1s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="3.6s" begin="1s" repeatCount="indefinite"/></circle>
+            <circle cx="95" cy="380" r="1.5" fill="#3a2200"><animate attributeName="cy" values="380;80" dur="4s" begin="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="4s" begin="1.5s" repeatCount="indefinite"/></circle>
+            <circle cx="125" cy="350" r="1" fill="#3a2200"><animate attributeName="cy" values="350;60" dur="2.5s" begin="0.8s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.5s" begin="0.8s" repeatCount="indefinite"/></circle>
+          </g>
+        </g>
+
+        <!-- Glass outline -->
+        <path d="M30,20 L18,390 Q18,420 40,430 L180,430 Q202,420 202,390 L190,20 Z"
+          fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+
+        <!-- Glass shine (left edge) -->
+        <path d="M30,20 L18,390" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="6" stroke-linecap="round"/>
+
+        <!-- Glass bottom -->
+        <ellipse cx="110" cy="430" rx="70" ry="8" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+
+        <!-- Harp / G label area -->
+        <g id="guinness-label" transform="translate(110,240)">
+          <!-- Label background -->
+          <rect x="-48" y="-52" width="96" height="104" rx="3" fill="rgba(20,10,0,0.6)" stroke="rgba(196,160,67,0.3)" stroke-width="0.5"/>
+          <!-- Harp top arc -->
+          <path d="M-16,-38 Q-16,-48 0,-48 Q16,-48 16,-38" fill="none" stroke="#c8a84b" stroke-width="1.5"/>
+          <!-- Harp strings -->
+          <line x1="-16" y1="-38" x2="-16" y2="-8" stroke="#c8a84b" stroke-width="1.5"/>
+          <line x1="-10" y1="-46" x2="-10" y2="-8" stroke="#c8a84b" stroke-width="1"/>
+          <line x1="-4" y1="-48" x2="-4" y2="-8" stroke="#c8a84b" stroke-width="1"/>
+          <line x1="2" y1="-48" x2="2" y2="-8" stroke="#c8a84b" stroke-width="1"/>
+          <line x1="8" y1="-46" x2="8" y2="-8" stroke="#c8a84b" stroke-width="1"/>
+          <line x1="16" y1="-38" x2="16" y2="-8" stroke="#c8a84b" stroke-width="1.5"/>
+          <!-- Harp base -->
+          <rect x="-18" y="-10" width="36" height="4" rx="1" fill="#c8a84b"/>
+
+          <!-- GUINNESS text -->
+          <text x="0" y="12" text-anchor="middle" font-family="'Playfair Display', serif" font-size="11" font-weight="700" fill="#c8a84b" letter-spacing="2">GUINNESS</text>
+
+          <!-- The G letter with crossbar (THE TARGET) -->
+          <text x="0" y="42" text-anchor="middle" font-family="'Playfair Display', serif" font-size="38" font-weight="900" fill="#c8a84b" opacity="0.9">G</text>
+        </g>
+
+        <!-- G crossbar line (target indicator) -->
+        <line id="g-crossbar" x1="22" y1="262" x2="198" y2="262" stroke="#c8a84b" stroke-width="0.8" stroke-dasharray="4,4" opacity="0.5"/>
+
+        <!-- Glass overlay shine -->
+        <path d="M30,20 L18,390 Q18,420 40,430 L180,430 Q202,420 202,390 L190,20 Z"
+          fill="url(#glassGrad)"/>
+
+        <!-- Rim top -->
+        <ellipse cx="110" cy="20" rx="80" ry="10" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+      </svg>
+    </div>
+
+    <div class="instruction" id="game-instruction">
+      <span>Tilt slowly</span> to pour • <span>Tilt back</span> to lock in
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="screen" id="result-screen">
+    <div class="result-label">Your Split</div>
+    <div class="result-pct" id="result-pct">0%</div>
+    <svg class="result-glass-mini" id="result-glass-mini" viewBox="0 0 220 460" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="miniClip">
+          <path d="M30,20 L18,390 Q18,420 40,430 L180,430 Q202,420 202,390 L190,20 Z"/>
+        </clipPath>
+        <linearGradient id="miniStout" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#0f0800"/>
+          <stop offset="100%" stop-color="#2a1500"/>
+        </linearGradient>
+        <linearGradient id="miniHead" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f5e8c5"/>
+          <stop offset="100%" stop-color="#e0cfa0"/>
+        </linearGradient>
+      </defs>
+      <g clip-path="url(#miniClip)">
+        <rect x="0" y="0" width="220" height="460" fill="url(#miniStout)"/>
+        <rect id="miniHead" x="0" y="0" width="220" height="44" fill="url(#miniHead)"/>
+      </g>
+      <path d="M30,20 L18,390 Q18,420 40,430 L180,430 Q202,420 202,390 L190,20 Z" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2"/>
+      <line x1="22" y1="262" x2="198" y2="262" stroke="#c8a84b" stroke-width="1" stroke-dasharray="4,4" opacity="0.6"/>
+      <ellipse cx="110" cy="430" rx="70" ry="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <ellipse cx="110" cy="20" rx="80" ry="10" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    </svg>
+    <div class="result-message" id="result-message">Nice pour, legend.</div>
+    <div class="divider"></div>
+    <button class="btn-primary" onclick="resetGame()">Pour Another</button>
+  </div>
+
+  <!-- SPILL -->
+  <div class="screen" id="spill-screen">
+    <div class="spill-icon">💧</div>
+    <div class="spill-title">Spilled!</div>
+    <div class="spill-sub">You went too far. That's a wasted pint.</div>
+    <button class="btn-primary" onclick="resetGame()">Try Again</button>
+  </div>
+
+</div>
+
+<script>
+// ---- Audio Context ----
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playPour(intensity) {
+  try {
+    const ctx = getAudio();
+    const bufferSize = ctx.sampleRate * 0.08;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.min(1, intensity * 2);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400 + intensity * 800;
+    const gain = ctx.createGain();
+    gain.gain.value = Math.min(0.3, intensity * 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+    src.stop(ctx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+function playSlosh() {
+  try {
+    const ctx = getAudio();
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const bufferSize = ctx.sampleRate * 0.12;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let j = 0; j < bufferSize; j++) {
+          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.3));
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 300 + Math.random() * 200;
+        filter.Q.value = 2;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.15 - i * 0.04;
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(ctx.currentTime);
+      }, i * 80);
+    }
+  } catch(e) {}
+}
+
+function playDing() {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 1.5);
+
+    // Harmonic
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.frequency.value = 1320;
+    osc2.type = 'sine';
+    gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start();
+    osc2.stop(ctx.currentTime + 1.0);
+  } catch(e) {}
+}
+
+function playSpill() {
+  try {
+    const ctx = getAudio();
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        const bufferSize = ctx.sampleRate * 0.2;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let j = 0; j < bufferSize; j++) {
+          data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (bufferSize * 0.5));
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 600;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.25;
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        src.start();
+      }, i * 60);
+    }
+  } catch(e) {}
+}
+
+// ---- Game State ----
+const GLASS_TOP_Y = 20;
+const GLASS_BOTTOM_Y = 390;
+const GLASS_HEIGHT = GLASS_BOTTOM_Y - GLASS_TOP_Y; // 370
+// G crossbar is at Y=262 in SVG, head is 44px
+// G crossbar from bottom: (390 - 262) / 370 = 0.3459 of liquid height
+// So "target" fill from bottom = ~34.6% of glass height
+const G_CROSSBAR_Y = 262;
+const G_CROSSBAR_FROM_BOTTOM_FRAC = (GLASS_BOTTOM_Y - G_CROSSBAR_Y) / GLASS_HEIGHT; // ~0.346
+
+let liquidLevel = 1.0; // 0=empty, 1=full (fraction of glass from bottom)
+let tiltAngle = 0;     // degrees (0=upright, 90=horizontal)
+let isPouring = false;
+let gameStarted = false;
+let gameOver = false;
+let gyroAvailable = false;
+let tapMode = false;
+let pourInterval = null;
+let pourSoundInterval = null;
+let lastBeta = 0;
+let animFrame = null;
+const HEAD_FRAC = 44 / GLASS_HEIGHT; // fraction of glass that is head
+
+// Slosh state
+let sloshOffset = 0;
+let sloshVelocity = 0;
+
+// Max pour rate per frame (fraction of glass per degree-second)
+const POUR_RATE = 0.0012; // per degree per frame tick
+
+function requestGyro() {
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    showScreen('perm-screen');
+  } else {
+    // Android or browser that doesn't need permission
+    startGyroListening();
+    showGame();
+  }
+}
+
+function askPermission() {
+  DeviceOrientationEvent.requestPermission().then(state => {
+    if (state === 'granted') {
+      startGyroListening();
+      showGame();
+    } else {
+      alert('Motion permission denied. Using tap mode.');
+      showGame(true);
+    }
+  }).catch(() => showGame(true));
+}
+
+function startGyroListening() {
+  gyroAvailable = true;
+  window.addEventListener('deviceorientation', onGyro, true);
+}
+
+function onGyro(e) {
+  if (!gameStarted || gameOver) return;
+  // gamma = side-wise tilt (-90 left, 0 upright, +90 right)
+  // We take absolute value so tilting either side works
+  let gamma = e.gamma || 0; // -90 to 90
+  let tilt = Math.abs(gamma); // 0 = upright, 90 = fully sideways
+  tiltAngle = Math.max(0, tilt);
+  document.getElementById('tilt-readout').textContent = `Tilt: ${Math.round(tiltAngle)}°`;
+}
+
+function showGame(tap = false) {
+  tapMode = tap;
+  showScreen('game-screen');
+  resetGameState();
+  gameStarted = true;
+  if (tap) setupTapMode();
+  startGameLoop();
+}
+
+function setupTapMode() {
+  const wrapper = document.querySelector('.glass-wrapper');
+  let holding = false;
+  wrapper.addEventListener('touchstart', e => { e.preventDefault(); holding = true; getAudio(); }, {passive:false});
+  wrapper.addEventListener('touchend', e => { e.preventDefault(); holding = false; }, {passive:false});
+  wrapper.addEventListener('mousedown', () => { holding = true; getAudio(); });
+  wrapper.addEventListener('mouseup', () => { holding = false; });
+
+  // Simulate tilt from hold
+  const tapTick = setInterval(() => {
+    if (!gameStarted || gameOver) { clearInterval(tapTick); return; }
+    if (holding) {
+      tiltAngle = Math.min(tiltAngle + 3, 75);
+    } else {
+      tiltAngle = Math.max(tiltAngle - 5, 0);
+    }
+    document.getElementById('tilt-readout').textContent = `Tilt: ${Math.round(tiltAngle)}°`;
+  }, 50);
+}
+
+function startGameLoop() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  let lastTime = null;
+  let pourNoiseTimer = 0;
+
+  function loop(ts) {
+    if (!gameStarted || gameOver) return;
+    if (!lastTime) lastTime = ts;
+    const dt = Math.min(ts - lastTime, 50); // cap dt
+    lastTime = ts;
+
+    const tiltFrac = tiltAngle / 90;
+    const isActivelyPouring = tiltAngle > 5;
+
+    // Pour liquid
+    if (isActivelyPouring && liquidLevel > 0) {
+      const rate = POUR_RATE * tiltFrac * dt;
+      liquidLevel = Math.max(0, liquidLevel - rate);
+      isPouring = true;
+
+      // Pour sound every ~100ms
+      pourNoiseTimer += dt;
+      if (pourNoiseTimer > 80) {
+        playPour(tiltFrac * 0.7);
+        pourNoiseTimer = 0;
+      }
+    } else {
+      isPouring = false;
+      pourNoiseTimer = 0;
+    }
+
+    // Slosh physics
+    const targetSlosh = isActivelyPouring ? tiltFrac * 8 : 0;
+    const springForce = (targetSlosh - sloshOffset) * 0.15;
+    sloshVelocity += springForce;
+    sloshVelocity *= 0.75;
+    sloshOffset += sloshVelocity;
+
+    // Check spill
+    if (tiltAngle >= 88) {
+      triggerSpill();
+      return;
+    }
+
+    updateGlass();
+    animFrame = requestAnimationFrame(loop);
+  }
+
+  animFrame = requestAnimationFrame(loop);
+}
+
+function updateGlass() {
+  // The glass holds liquid from GLASS_BOTTOM_Y upward
+  // liquidLevel=1 → liquid fills from bottom to top (Y=20)
+  // liquidLevel=0 → empty
+  // Head always sits on top of stout
+
+  const totalFillPx = liquidLevel * GLASS_HEIGHT;
+  const headPx = Math.min(44, totalFillPx);
+  const stoutPx = Math.max(0, totalFillPx - headPx);
+
+  // Stout rect: from bottom upward
+  const stoutTop = GLASS_BOTTOM_Y - stoutPx;
+  const headTop = stoutTop - headPx + (liquidLevel < 1 ? 0 : 0);
+
+  // Apply slosh as a slight tilt to the liquid rect (visual only)
+  const stoutEl = document.getElementById('stoutFill');
+  const headEl = document.getElementById('headFill');
+
+  // Stout fill
+  stoutEl.setAttribute('y', stoutTop);
+  stoutEl.setAttribute('height', stoutPx + 10); // +10 to avoid gap
+
+  // Head fill
+  headEl.setAttribute('y', headTop);
+  headEl.setAttribute('height', headPx);
+
+  // Glass tilt visual
+  const glassSvg = document.getElementById('glass-svg');
+  const visualTilt = Math.min(tiltAngle, 80);
+  glassSvg.style.transform = `rotate(${visualTilt}deg)`;
+}
+
+function triggerSpill() {
+  gameOver = true;
+  gameStarted = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  playSpill();
+  showScreen('spill-screen');
+}
+
+function lockInResult() {
+  if (gameOver) return;
+  gameOver = true;
+  gameStarted = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  playSlosh();
+  // Reset glass tilt
+  document.getElementById('glass-svg').style.transform = 'rotate(0deg)';
+
+  // Calculate score
+  // liquidLevel = fraction of glass that has liquid (including head)
+  // G crossbar is at G_CROSSBAR_FROM_BOTTOM_FRAC from bottom = ~0.346
+  // "perfect" = liquidLevel == G_CROSSBAR_FROM_BOTTOM_FRAC
+  const target = G_CROSSBAR_FROM_BOTTOM_FRAC;
+  const diff = Math.abs(liquidLevel - target);
+  const maxDiff = Math.max(target, 1 - target);
+  const score = Math.max(0, Math.round((1 - diff / maxDiff) * 100));
+
+  // Show result after dramatic pause
+  setTimeout(() => {
+    showResult(score);
+  }, 900);
+}
+
+function showResult(score) {
+  playSlosh();
+  setTimeout(() => {
+    if (score >= 95) playDing();
+  }, 300);
+
+  showScreen('result-screen');
+
+  const pctEl = document.getElementById('result-pct');
+  const msgEl = document.getElementById('result-message');
+
+  // Animate count up
+  let displayed = 0;
+  const target = score;
+  const step = Math.max(1, Math.ceil(target / 30));
+  const counter = setInterval(() => {
+    displayed = Math.min(displayed + step, target);
+    pctEl.textContent = displayed + '%';
+    if (displayed >= target) clearInterval(counter);
+  }, 30);
+
+  pctEl.classList.toggle('perfect', score >= 95);
+
+  // Message
+  let msg = '';
+  if (score === 100) msg = "Perfect. Absolute perfection. The pub falls silent.";
+  else if (score >= 90) msg = "That's the split. You're a Guinness legend.";
+  else if (score >= 75) msg = "Impressive pour. You've done this before.";
+  else if (score >= 55) msg = "Not bad. Another round and you'll nail it.";
+  else if (score >= 35) msg = "A brave attempt. Keep practicing.";
+  else msg = "You barely touched the G. Rookie numbers.";
+  msgEl.textContent = msg;
+
+  // Update mini glass
+  updateMiniGlass(score);
+}
+
+function updateMiniGlass(score) {
+  // Show final state on mini glass
+  const miniHead = document.getElementById('miniHead');
+  const miniHeadPx = Math.min(44, liquidLevel * GLASS_HEIGHT);
+  const miniStoutPx = Math.max(0, liquidLevel * GLASS_HEIGHT - miniHeadPx);
+  const miniStoutTop = GLASS_BOTTOM_Y - miniStoutPx;
+  const miniHeadTop = miniStoutTop - miniHeadPx;
+
+  // We'll just show a simplified version
+  const svg = document.getElementById('result-glass-mini');
+  // Add stout rect dynamically
+  const existing = svg.querySelector('#miniStoutRect');
+  if (existing) existing.remove();
+
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.id = 'miniStoutRect';
+  rect.setAttribute('x', '0');
+  rect.setAttribute('y', miniStoutTop);
+  rect.setAttribute('width', '220');
+  rect.setAttribute('height', miniStoutPx + 10);
+  rect.setAttribute('fill', '#1a0f00');
+  rect.setAttribute('clip-path', 'url(#miniClip)');
+
+  svg.insertBefore(rect, svg.querySelector('g'));
+  miniHead.setAttribute('y', miniHeadTop);
+  miniHead.setAttribute('height', miniHeadPx);
+}
+
+function resetGameState() {
+  liquidLevel = 1.0;
+  tiltAngle = 0;
+  isPouring = false;
+  gameOver = false;
+  sloshOffset = 0;
+  sloshVelocity = 0;
+  updateGlass();
+  document.getElementById('tilt-readout').textContent = 'Tilt: 0°';
+  document.getElementById('glass-svg').style.transform = 'rotate(0deg)';
+}
+
+function resetGame() {
+  resetGameState();
+  gameStarted = true;
+  gameOver = false;
+  if (tapMode) setupTapMode();
+  showScreen('game-screen');
+  startGameLoop();
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// --- Detect when user tilts back to upright to lock in ---
+let prevTilt = 0;
+let wasPouring = false;
+let lockCooldown = false;
+
+setInterval(() => {
+  if (!gameStarted || gameOver) return;
+  const currentTilt = tiltAngle;
+  // Detect "tilted then came back to near-upright" pattern
+  if (wasPouring && currentTilt < 8 && prevTilt > 15 && !lockCooldown) {
+    lockCooldown = true;
+    lockInResult();
+  }
+  wasPouring = currentTilt > 10;
+  prevTilt = currentTilt;
+  setTimeout(() => lockCooldown = false, 500);
+}, 100);
+
+// Initialize audio on first touch
+document.addEventListener('touchstart', () => { try { getAudio(); } catch(e){} }, { once: true });
+document.addEventListener('click', () => { try { getAudio(); } catch(e){} }, { once: true });
+</script>
+</body>
+</html>

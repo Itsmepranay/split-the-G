@@ -350,10 +350,10 @@
 
         <!-- Glass body (filled stout) -->
         <g clip-path="url(#glassClip)">
-          <!-- Stout liquid -->
-          <rect id="stoutFill" x="0" y="0" width="220" height="460" fill="url(#stoutGrad)"/>
-          <!-- Head (cream) - sits on top of stout -->
-          <rect id="headFill" x="0" y="0" width="220" height="44" fill="url(#headGrad)"/>
+          <!-- Stout liquid - polygon for sloped gravity surface -->
+          <polygon id="stoutFill" points="0,460 220,460 220,460 0,460" fill="url(#stoutGrad)"/>
+          <!-- Head (cream foam) - polygon slopes with stout surface -->
+          <polygon id="headFill" points="0,460 220,460 220,460 0,460" fill="url(#headGrad)"/>
           <!-- Bubbles rising -->
           <g id="bubbles" opacity="0.4">
             <circle cx="80" cy="400" r="2" fill="#3a2200"><animate attributeName="cy" values="400;50" dur="3.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="3.2s" repeatCount="indefinite"/></circle>
@@ -629,13 +629,14 @@ function startGyroListening() {
   window.addEventListener('deviceorientation', onGyro, true);
 }
 
+let rawGamma = 0;
 function onGyro(e) {
   if (!gameStarted || gameOver) return;
   // gamma = pure side tilt (left/right), -90 to +90
   // beta = pitch (front/back) — ignored completely
-  const gamma = e.gamma || 0;
+  rawGamma = e.gamma || 0;
   const DEAD_ZONE = 8;
-  const raw = Math.abs(gamma);
+  const raw = Math.abs(rawGamma);
   const tilt = raw < DEAD_ZONE ? 0 : raw - DEAD_ZONE;
   tiltAngle = Math.min(90, tilt);
   document.getElementById('tilt-readout').textContent = `Tilt: ${Math.round(tiltAngle)}°`;
@@ -723,35 +724,48 @@ function startGameLoop() {
 }
 
 function updateGlass() {
-  // The glass holds liquid from GLASS_BOTTOM_Y upward
-  // liquidLevel=1 → liquid fills from bottom to top (Y=20)
-  // liquidLevel=0 → empty
-  // Head always sits on top of stout
+  // Glass is FIXED on screen - never rotates
+  // Liquid surface slopes based on tiltAngle (gravity simulation)
+  // Glass inner coords: left x~18..30 top, x~18..40 bottom | right x~190..202 top, x~180..202 bottom
+  // We use simplified left=18, right=202, bottom=390, top=20 for liquid calc
 
+  const GW = 184; // glass inner width at mid
   const totalFillPx = liquidLevel * GLASS_HEIGHT;
   const headPx = Math.min(44, totalFillPx);
   const stoutPx = Math.max(0, totalFillPx - headPx);
 
-  // Stout rect: from bottom upward
-  const stoutTop = GLASS_BOTTOM_Y - stoutPx;
-  const headTop = stoutTop - headPx + (liquidLevel < 1 ? 0 : 0);
+  // Slope: how many px the surface tilts side to side
+  // At 0 deg tilt -> slope=0 (flat surface)
+  // At 82 deg tilt -> slope up to ~half glass height (steep angle)
+  const tiltRad = (tiltAngle * Math.PI) / 180;
+  const slopePx = Math.tan(tiltRad) * (GW / 2);
 
-  // Apply slosh as a slight tilt to the liquid rect (visual only)
+  // gamma sign tells us which side is lower
+  // positive gamma = tilting right = right side lower
+  const sign = (typeof rawGamma !== 'undefined' && rawGamma >= 0) ? 1 : -1;
+
+  // Stout surface: centre Y, then left/right offset by slope
+  const stoutCentreY = GLASS_BOTTOM_Y - stoutPx;
+  const stoutLeftY  = stoutCentreY + sign * slopePx;
+  const stoutRightY = stoutCentreY - sign * slopePx;
+
+  // Head surface sits on top of stout (same slope, shifted up by headPx)
+  const headLeftY  = stoutLeftY  - headPx;
+  const headRightY = stoutRightY - headPx;
+
+  // Polygon points: bottom-left, bottom-right, surface-right, surface-left
+  // Stout fills from bottom up to stout surface
   const stoutEl = document.getElementById('stoutFill');
+  stoutEl.setAttribute('points',
+    `18,${GLASS_BOTTOM_Y} 202,${GLASS_BOTTOM_Y} 202,${stoutRightY} 18,${stoutLeftY}`);
+
+  // Head fills from stout surface up to head surface
   const headEl = document.getElementById('headFill');
+  headEl.setAttribute('points',
+    `18,${stoutLeftY} 202,${stoutRightY} 202,${headRightY} 18,${headLeftY}`);
 
-  // Stout fill
-  stoutEl.setAttribute('y', stoutTop);
-  stoutEl.setAttribute('height', stoutPx + 10); // +10 to avoid gap
-
-  // Head fill
-  headEl.setAttribute('y', headTop);
-  headEl.setAttribute('height', headPx);
-
-  // Glass tilt visual
-  const glassSvg = document.getElementById('glass-svg');
-  const visualTilt = Math.min(tiltAngle, 80);
-  glassSvg.style.transform = `rotate(${visualTilt}deg)`;
+  // Glass never rotates
+  document.getElementById('glass-svg').style.transform = 'none';
 }
 
 function triggerSpill() {
@@ -769,9 +783,6 @@ function lockInResult() {
   if (animFrame) cancelAnimationFrame(animFrame);
 
   playSlosh();
-  // Reset glass tilt
-  document.getElementById('glass-svg').style.transform = 'rotate(0deg)';
-
   // Calculate score
   // liquidLevel = fraction of glass that has liquid (including head)
   // G crossbar is at G_CROSSBAR_FROM_BOTTOM_FRAC from bottom = ~0.346
